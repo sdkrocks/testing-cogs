@@ -4,8 +4,8 @@
     "disabled" : false,
     "hidden" : false,
     "install_msg" : "Thanks for installing.",
-    "name" : "rainbow",
-    "required_cogs" : {},],
+    "name" : "Rainbow",
+    "required_cogs" : {},
     "short" : "rainbow",
     "tags" : [],
     "type" : "COG"
