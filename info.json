@@ -1,6 +1,8 @@
 {
-"NAME": "test",
-"AUTHOR" : "someone",
-"SHORT": "to test",
-"DESCRIPTION" : "no"
+    "author" : ["someone"],
+    "install_msg" : "im good",
+    "name" : "testing-cogs",
+    "short" : "Cogs by TrustyJAID inspired by many.",
+    "description" : "pls",
+    "tags" : ["Fun", "Hockey", "Images", "Badges", "Utility", "Starboard", "Trigger"]
 }
