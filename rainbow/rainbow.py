@@ -2,7 +2,8 @@ import asyncio
 from colorsys import hls_to_rgb
 
 import discord
-from discord.ext import commands
+from redbot.core import commands
+
 
 class Rainbow(commands.Cog):
     def __init__(self, bot: commands.Bot):
