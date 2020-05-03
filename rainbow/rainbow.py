@@ -32,7 +32,7 @@ class Rainbow(commands.Cog):
         if ctx.author.top_role > role:
             m: discord.Message = await ctx.send('Starting...')
             self.roles.add(role)
-            await m.edit(content='Started!')
+            await m.edit(content='Started! :eyes: ur chosen role is now gay...')
         else:
             await ctx.send(self.on_low_role)
     
