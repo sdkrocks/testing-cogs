@@ -28,7 +28,7 @@ class Rainbow(commands.Cog):
     
     @commands.command()
     @commands.has_permissions(manage_roles=True)
-    async def start(self, ctx: commands.Context, role: discord.Role):
+    async def startr(self, ctx: commands.Context, role: discord.Role):
         if ctx.author.top_role > role:
             m: discord.Message = await ctx.send('Starting...')
             self.roles.add(role)
@@ -38,7 +38,7 @@ class Rainbow(commands.Cog):
     
     @commands.command()
     @commands.has_permissions(manage_roles=True)
-    async def stop(self, ctx: commands.Context, role: discord.Role):
+    async def stopr(self, ctx: commands.Context, role: discord.Role):
         if ctx.author.top_role > role:
             m: discord.Message = await ctx.send('Stopping...')
             try:
