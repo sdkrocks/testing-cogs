@@ -43,6 +43,7 @@ class Scrub(commands.Cog):
         """
         for provider in rules.get('providers', {}).values():
             if not re.match(provider['urlPattern'], url, re.IGNORECASE):
+                ctx.send("no match for pattern")
                 continue
             if any(
                 re.match(exc, url, re.IGNORECASE)
@@ -63,6 +64,7 @@ class Scrub(commands.Cog):
             query_params = parse_qsl(parsed_url.query)
 
             for rule in provider['rules']:
+                ctx.send("found in rules")
                 query_params = [
                     param for param in query_params
                     if not re.match(rule, param[0])
