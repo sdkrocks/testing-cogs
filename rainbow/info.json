@@ -1,11 +1,12 @@
 {
-    "AUTHOR" : ["Someone"],
-    "INSTALL_MSG" : "i has been installed",
-    "NAME" : "rainbow",
-    "SHORT" : "A Short description, appears on !cog list repo",
-    "DESCRIPTION" : "A longer description, appears on !cog list repo cogname",
-    "TAGS" : [],
-    "REQUIREMENTS" : [],
-    "HIDDEN" : false,
-    "type": "COG"
+    "author" : ["someone"],
+    "description" : "A cog to grab Runescape and OSRS stats and profile information.",
+    "disabled" : false,
+    "hidden" : false,
+    "install_msg" : "Thanks for installing.",
+    "name" : "rainbow",
+    "required_cogs" : {},],
+    "short" : "rainbow",
+    "tags" : [],
+    "type" : "COG"
 }
