@@ -1,10 +1,11 @@
 {
-    "AUTHOR" : "Someone",
+    "AUTHOR" : ["Someone"],
     "INSTALL_MSG" : "i has been installed",
     "NAME" : "rainbow",
     "SHORT" : "A Short description, appears on !cog list repo",
     "DESCRIPTION" : "A longer description, appears on !cog list repo cogname",
     "TAGS" : [],
     "REQUIREMENTS" : [],
-    "HIDDEN" : false
+    "HIDDEN" : false,
+    "type": "COG"
 }
