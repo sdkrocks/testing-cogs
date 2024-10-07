@@ -173,9 +173,26 @@ class Scrub(commands.Cog):
         await ctx.send("Rules updated")
 
     async def _update(self, url):
-        log.debug(f'Downloading rules data from {url}')
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as request:
-                rules = json.loads(await request.read())
-        await self.conf.rules.set(rules)
-        log.info(f"Rules updated successfully from {url}")  # Log successful update
+    log.debug(f'Downloading rules data from {url}')
+    
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get(url) as response:
+                if response.status != 200:
+                    log.error(f"Failed to download rules: HTTP {response.status} {response.reason}")
+                    return
+                
+                # Attempt to read and parse the JSON response
+                try:
+                    content = await response.read()
+                    if not content:
+                        log.error("Downloaded rules file is empty.")
+                        return
+                    
+                    rules = json.loads(content)
+                    await self.conf.rules.set(rules)
+                    log.info(f"Rules updated successfully from {url}")
+                except json.JSONDecodeError:
+                    log.error(f"Failed to decode rules JSON from {url}")
+        except aiohttp.ClientError as e:
+            log.error(f"Error occurred while downloading rules from {url}: {e}")
