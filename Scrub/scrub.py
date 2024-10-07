@@ -18,7 +18,7 @@ __all__ = ["UNIQUE_ID", "Scrub"]
 UNIQUE_ID = 0x7363727562626572
 URL_PATTERN = re.compile(r'(https?://\S+)')
 DEFAULT_URL = "https://rules1.clearurls.xyz/data.minify.json"
-LOCAL_RULES_FILE_PATH = "data.minify.json"
+os.path.join(os.path.dirname(__file__), "data.minify.json")
 
 class Scrub(commands.Cog):
     """Applies a set of rules to remove undesirable elements from hyperlinks"""
