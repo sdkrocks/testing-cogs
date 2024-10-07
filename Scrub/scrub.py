@@ -86,18 +86,19 @@ class Scrub(commands.Cog):
         await ctx.send("OpenAI API key has been set successfully.")
 
     @commands.Cog.listener()
+    @commands.Cog.listener()
     async def on_message(self, message):
         if message.author.bot:
             return
-
+    
         links = list(set(URL_PATTERN.findall(message.content)))
         if not links:
             return
-
+    
         rules = await self.conf.rules()
         threshold = await self.conf.threshold()
         clean_links = []
-
+    
         for link in links:
             clean_link = self.clean_url(link, rules)
             if ((len(link) <= len(clean_link) - threshold or
@@ -105,50 +106,22 @@ class Scrub(commands.Cog):
                  link.lower() not in (clean_link.lower(),
                                       unquote(clean_link).lower())):
                 clean_links.append(clean_link)
-
-        if not clean_links:
-            return
-
-        # Generate roast message for the link
-        roast_message = await self.generate_roast_message(message.content)
+    
+        if clean_links:
+            # Send the cleaned links immediately
+            plural = 'is' if len(clean_links) == 1 else 'ese'
+            payload = "\n".join([f"<{link}>" for link in clean_links])
+            response = f"I scrubbed th{plural} for you:\n{payload}"
+            await message.channel.send(response)
+    
+            # Generate the roast message asynchronously
+            asyncio.create_task(self.send_roast_message(message.channel, message.content))
+    
+    async def send_roast_message(self, channel, link):
+        """Generate a roast message about the provided link and send it to the channel."""
+        roast_message = await self.generate_roast_message(link)
         if roast_message:
-            await message.channel.send(roast_message)
-
-    async def generate_roast_message(self, link: str) -> Optional[str]:
-        """Use OpenAI API to generate a roast message about the provided link."""
-        api_key = await self.conf.openai_api_key()
-        if not api_key:
-            log.error("OpenAI API key is not set. Cannot generate roast message.")
-            return None
-
-        prompt = f"Generate a humorous roast about why the following link is terrible: {link}"
-
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}"
-        }
-        data = {
-            "model": "text-davinci-003",
-            "prompt": prompt,
-            "max_tokens": 50
-        }
-
-        async with aiohttp.ClientSession() as session:
-            try:
-                async with session.post(
-                    "https://api.openai.com/v1/completions",
-                    headers=headers,
-                    json=data
-                ) as response:
-                    if response.status != 200:
-                        log.error(f"Failed to get response from OpenAI: HTTP {response.status} {response.reason}")
-                        return None
-
-                    result = await response.json()
-                    return result.get("choices", [{}])[0].get("text", "").strip()
-            except aiohttp.ClientError as e:
-                log.error(f"Error occurred while contacting OpenAI API: {e}")
-                return None
+            await channel.send(roast_message)
 
     def clean_url(self, url: str, rules: dict, loop: bool = True):
         """Clean the given URL with the provided rules data."""
