@@ -18,7 +18,7 @@ __all__ = ["UNIQUE_ID", "Scrub"]
 UNIQUE_ID = 0x7363727562626572
 URL_PATTERN = re.compile(r'(https?://\S+)')
 DEFAULT_URL = "https://rules1.clearurls.xyz/data.minify.json"
-
+LOCAL_RULES_FILE_PATH = "data.minify.json"
 
 class Scrub(commands.Cog):
     """Applies a set of rules to remove undesirable elements from hyperlinks"""
@@ -173,6 +173,7 @@ class Scrub(commands.Cog):
         await ctx.send("Rules updated")
 
     async def _update(self, url):
+        """Update rules by attempting to download them first, then fallback to local file."""
         log.debug(f'Downloading rules data from {url}')
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36"
@@ -183,6 +184,8 @@ class Scrub(commands.Cog):
                 async with session.get(url, headers=headers) as response:
                     if response.status != 200:
                         log.error(f"Failed to download rules: HTTP {response.status} {response.reason}")
+                        log.info("Attempting to load rules from local file.")
+                        self._load_rules_from_file()
                         return
                     
                     # Attempt to read and parse the JSON response
@@ -190,6 +193,8 @@ class Scrub(commands.Cog):
                         content = await response.read()
                         if not content:
                             log.error("Downloaded rules file is empty.")
+                            log.info("Attempting to load rules from local file.")
+                            self._load_rules_from_file()
                             return
                         
                         rules = json.loads(content)
@@ -197,6 +202,22 @@ class Scrub(commands.Cog):
                         log.info(f"Rules updated successfully from {url}")
                     except json.JSONDecodeError:
                         log.error(f"Failed to decode rules JSON from {url}")
+                        log.info("Attempting to load rules from local file.")
+                        self._load_rules_from_file()
             except aiohttp.ClientError as e:
                 log.error(f"Error occurred while downloading rules from {url}: {e}")
+                log.info("Attempting to load rules from local file.")
+                self._load_rules_from_file()
+
+    def _load_rules_from_file(self):
+        """Load rules from a local JSON file as a fallback."""
+        try:
+            with open(LOCAL_RULES_FILE_PATH, 'r', encoding='utf-8') as f:
+                rules = json.load(f)
+            log.info(f"Rules loaded successfully from {LOCAL_RULES_FILE_PATH}")
+            asyncio.create_task(self.conf.rules.set(rules))  # Use asyncio.create_task to avoid blocking
+        except FileNotFoundError:
+            log.error(f"Rules file not found: {LOCAL_RULES_FILE_PATH}")
+        except json.JSONDecodeError as e:
+            log.error(f"Failed to parse rules JSON: {e}")
 
