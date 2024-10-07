@@ -1,127 +1,38 @@
-import json
-import logging
+# -*- coding: utf-8 -*-
 import aiohttp
 import asyncio
+import json
+import logging
 import re
-from typing import Optional
+from collections import namedtuple
+from typing import Optional, Union
 from urllib.parse import parse_qsl, unquote, urlencode, urlparse, urlunparse
 
+import discord
 from redbot.core import Config, commands
 
 log = logging.getLogger("red.cbd-cogs.scrub")
 
+__all__ = ["UNIQUE_ID", "Scrub"]
+
+UNIQUE_ID = 0x7363727562626572
 URL_PATTERN = re.compile(r'(https?://\S+)')
-DEFAULT_URL = "https://kevinroebert.gitlab.io/ClearUrls/data/data.minify.json"
+DEFAULT_URL = "https://rules1.clearurls.xyz/data.minify.json"
 LOCAL_RULES_FILE_PATH = __file__.replace("scrub.py", "data.minify.json")
 
-
 class Scrub(commands.Cog):
-    """Applies a set of rules to remove undesirable elements from hyperlinks."""
-
-    def __init__(self, bot: commands.Bot):
+    """Applies a set of rules to remove undesirable elements from hyperlinks"""
+    
+    def __init__(self, bot: commands.Bot, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.bot = bot
-        self.conf = Config.get_conf(self, identifier=0x7363727562626572, force_registration=True)
-        self.conf.register_global(rules={}, threshold=2, url=DEFAULT_URL, openai_api_key=None)
-        log.info("Scrub cog initialized.")
-        asyncio.create_task(self._initialize_rules())
-
-    async def _initialize_rules(self):
-        """Initialize rules by trying to fetch them from URL first, then fallback to local file."""
-        url = await self.conf.url()
-        await self._update(url)
-
-    async def _update(self, url):
-        """Attempt to update rules from the URL; fallback to local if it fails."""
-        log.debug(f'Downloading rules data from {url}')
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36"
-        }
-
-        async with aiohttp.ClientSession() as session:
-            try:
-                async with session.get(url, headers=headers) as response:
-                    if response.status != 200:
-                        log.error(f"Failed to download rules: HTTP {response.status} {response.reason}")
-                        log.info("Attempting to load rules from local file.")
-                        self._load_rules_from_file()
-                        return
-
-                    content = await response.read()
-                    if not content:
-                        log.error("Downloaded rules file is empty.")
-                        log.info("Attempting to load rules from local file.")
-                        self._load_rules_from_file()
-                        return
-
-                    rules = json.loads(content)
-                    await self.conf.rules.set(rules)
-                    log.info(f"Rules updated successfully from {url}")
-            except (aiohttp.ClientError, json.JSONDecodeError) as e:
-                log.error(f"Error occurred while updating rules: {e}")
-                log.info("Attempting to load rules from local file.")
-                self._load_rules_from_file()
-
-    def _load_rules_from_file(self):
-        """Load rules from a local JSON file as a fallback."""
-        try:
-            with open(LOCAL_RULES_FILE_PATH, 'r', encoding='utf-8') as f:
-                rules = json.load(f)
-            log.info(f"Rules loaded successfully from {LOCAL_RULES_FILE_PATH}")
-            asyncio.create_task(self.conf.rules.set(rules))  # Use asyncio.create_task to avoid blocking
-        except FileNotFoundError:
-            log.error(f"Rules file not found: {LOCAL_RULES_FILE_PATH}")
-        except json.JSONDecodeError as e:
-            log.error(f"Failed to parse rules JSON: {e}")
-
-    @commands.group()
-    async def scrub(self, ctx: commands.Context):
-        """Scrub tracking elements from hyperlinks and generate roast messages."""
-        pass
-
-    @scrub.command()
-    @commands.has_permissions(administrator=True)
-    async def setapikey(self, ctx: commands.Context, api_key: str):
-        """Set the OpenAI API key for generating roast messages."""
-        await self.conf.openai_api_key.set(api_key)
-        await ctx.send("OpenAI API key has been set successfully.")
-
-    @commands.Cog.listener()
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        if message.author.bot:
-            return
-    
-        links = list(set(URL_PATTERN.findall(message.content)))
-        if not links:
-            return
-    
-        rules = await self.conf.rules()
-        threshold = await self.conf.threshold()
-        clean_links = []
-    
-        for link in links:
-            clean_link = self.clean_url(link, rules)
-            if ((len(link) <= len(clean_link) - threshold or
-                 len(link) >= len(clean_link) + threshold) and
-                 link.lower() not in (clean_link.lower(),
-                                      unquote(clean_link).lower())):
-                clean_links.append(clean_link)
-    
-        if clean_links:
-            # Send the cleaned links immediately
-            plural = 'is' if len(clean_links) == 1 else 'ese'
-            payload = "\n".join([f"<{link}>" for link in clean_links])
-            response = f"I scrubbed th{plural} for you:\n{payload}"
-            await message.channel.send(response)
-    
-            # Generate the roast message asynchronously
-            asyncio.create_task(self.send_roast_message(message.channel, message.content))
-    
-    async def send_roast_message(self, channel, link):
-        """Generate a roast message about the provided link and send it to the channel."""
-        roast_message = await self.generate_roast_message(link)
-        if roast_message:
-            await channel.send(roast_message)
+        self.conf = Config.get_conf(self,
+                                    identifier=UNIQUE_ID,
+                                    force_registration=True)
+        self.conf.register_global(rules={},
+                                  threshold=2,
+                                  url=DEFAULT_URL)
+        log.info("Scrub cog initialized.")  # Log cog initialization
 
     def clean_url(self, url: str, rules: dict, loop: bool = True):
         """Clean the given URL with the provided rules data."""
@@ -135,7 +46,8 @@ class Scrub(commands.Cog):
             if provider.get('completeProvider'):
                 return False
 
-            if any(re.match(exc, url, re.IGNORECASE) for exc in provider.get('exceptions', [])):
+            if any(re.match(exc, url, re.IGNORECASE)
+                   for exc in provider.get('exceptions', [])):
                 continue
 
             for redir in provider.get('redirections', []):
@@ -172,5 +84,139 @@ class Scrub(commands.Cog):
                 url = re.sub(raw_rule, '', url)
 
         if original_url != url:
-            log.info(f"URL cleaned: {original_url} -> {url}")
+            log.info(f"URL cleaned: {original_url} -> {url}")  # Log the before and after of URL scrubbing
         return url
+
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        if any((
+            message.author.bot,
+            message.guild and await self.bot.cog_disabled_in_guild(self, message.guild),
+            not await self.bot.allowed_by_whitelist_blacklist(message.author),
+        )):
+            return
+
+        message_location = "in DM" if message.guild is None else f"in guild {message.guild.name} (ID: {message.guild.id})"
+        log.info(f"Processing message from {message.author} {message_location}")  # Log message location and author
+
+        links = list(set(URL_PATTERN.findall(message.content)))
+        if not links:
+            log.debug("No URLs found in the message.")
+            return
+
+        log.debug(f"Found {len(links)} link(s) in the message: {links}")  # Log found links
+
+        rules = await self.conf.rules() or await self._update(await self.conf.url())
+        threshold = await self.conf.threshold()
+        clean_links = []
+
+        for link in links:
+            clean_link = self.clean_url(link, rules)
+            if ((len(link) <= len(clean_link) - threshold or
+                 len(link) >= len(clean_link) + threshold) and
+                 link.lower() not in (clean_link.lower(),
+                                      unquote(clean_link).lower())):
+                clean_links.append(clean_link)
+
+        if not clean_links:
+            log.debug("No links were scrubbed.")
+            return
+
+        plural = 'is' if len(clean_links) == 1 else 'ese'
+        payload = "\n".join([f"<{link}>" for link in clean_links])
+        response = f"I scrubbed th{plural} for you:\n{payload}"
+
+        log.info(f"Sending scrubbed links: {clean_links}")  # Log the cleaned links
+        await message.channel.send(content=response)
+
+    async def view_or_set(self, attribute: str, value=None):
+        config_element = getattr(self.conf, attribute)
+        if value is not None:
+            await config_element.set(value)
+            log.info(f"Set {attribute} to {value}")  # Log setting a new value
+            return f"set to {value}"
+        else:
+            value = await config_element()
+            log.debug(f"Retrieved {attribute}: {value}")  # Log retrieving a value
+            return f"is {value}"
+
+    @commands.group()
+    async def scrub(self, ctx: commands.Context):
+        """Scrub tracking elements from hyperlinks."""
+        pass
+
+    @scrub.command()
+    @commands.has_permissions(manage_guild=True)
+    async def threshold(self, ctx: commands.Context, threshold: int = None):
+        """View or set the minimum threshold for link changes."""
+        action = await self.view_or_set("threshold", threshold)
+        await ctx.send(f"Scrub threshold {action}")
+
+    @scrub.command()
+    @commands.has_permissions(manage_guild=True)
+    async def rules(self, ctx: commands.Context, location: str = None):
+        """View or set the rules file location to update from."""
+        action = await self.view_or_set("url", location)
+        await ctx.send(f"Scrub rules file location {action}")
+
+    @scrub.command()
+    @commands.has_permissions(manage_guild=True)
+    async def update(self, ctx: commands.Context):
+        """Update Scrub with the latest rules."""
+        url = await self.conf.url()
+        try:
+            await self._update(url)
+        except Exception as e:
+            await ctx.send("Rules update failed (see log for details)")
+            log.exception("Rules update failed", exc_info=e)  # Log the exception
+            return
+        await ctx.send("Rules updated")
+
+    async def _update(self, url):
+        """Update rules by attempting to download them first, then fallback to local file."""
+        log.debug(f'Downloading rules data from {url}')
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36"
+        }
+    
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.get(url, headers=headers) as response:
+                    if response.status != 200:
+                        log.error(f"Failed to download rules: HTTP {response.status} {response.reason}")
+                        log.info("Attempting to load rules from local file.")
+                        self._load_rules_from_file()
+                        return
+                    
+                    # Attempt to read and parse the JSON response
+                    try:
+                        content = await response.read()
+                        if not content:
+                            log.error("Downloaded rules file is empty.")
+                            log.info("Attempting to load rules from local file.")
+                            self._load_rules_from_file()
+                            return
+                        
+                        rules = json.loads(content)
+                        await self.conf.rules.set(rules)
+                        log.info(f"Rules updated successfully from {url}")
+                    except json.JSONDecodeError:
+                        log.error(f"Failed to decode rules JSON from {url}")
+                        log.info("Attempting to load rules from local file.")
+                        self._load_rules_from_file()
+            except aiohttp.ClientError as e:
+                log.error(f"Error occurred while downloading rules from {url}: {e}")
+                log.info("Attempting to load rules from local file.")
+                self._load_rules_from_file()
+
+    def _load_rules_from_file(self):
+        """Load rules from a local JSON file as a fallback."""
+        try:
+            with open(LOCAL_RULES_FILE_PATH, 'r', encoding='utf-8') as f:
+                rules = json.load(f)
+            log.info(f"Rules loaded successfully from {LOCAL_RULES_FILE_PATH}")
+            asyncio.create_task(self.conf.rules.set(rules))  # Use asyncio.create_task to avoid blocking
+        except FileNotFoundError:
+            log.error(f"Rules file not found: {LOCAL_RULES_FILE_PATH}")
+        except json.JSONDecodeError as e:
+            log.error(f"Failed to parse rules JSON: {e}")
