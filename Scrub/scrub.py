@@ -174,9 +174,13 @@ class Scrub(commands.Cog):
 
     async def _update(self, url):
         log.debug(f'Downloading rules data from {url}')
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36"
+        }
+    
         async with aiohttp.ClientSession() as session:
             try:
-                async with session.get(url) as response:
+                async with session.get(url, headers=headers) as response:
                     if response.status != 200:
                         log.error(f"Failed to download rules: HTTP {response.status} {response.reason}")
                         return
@@ -195,3 +199,4 @@ class Scrub(commands.Cog):
                         log.error(f"Failed to decode rules JSON from {url}")
             except aiohttp.ClientError as e:
                 log.error(f"Error occurred while downloading rules from {url}: {e}")
+
