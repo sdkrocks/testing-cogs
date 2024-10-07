@@ -17,7 +17,7 @@ __all__ = ["UNIQUE_ID", "Scrub"]
 
 UNIQUE_ID = 0x7363727562626572
 URL_PATTERN = re.compile(r'(https?://\S+)')
-DEFAULT_URL = "https://kevinroebert.gitlab.io/ClearUrls/data/data.minify.json"
+DEFAULT_URL = "https://rules2.clearurls.xyz/data.minify.json"
 
 
 class Scrub(commands.Cog):
