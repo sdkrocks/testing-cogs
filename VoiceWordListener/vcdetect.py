@@ -24,7 +24,7 @@ class VoiceWordListener(commands.Cog):
             await ctx.send("You need to be in a voice channel for me to join!")
 
     @commands.command()
-    async def leave(self, ctx: commands.Context):
+    async def nolisten(self, ctx: commands.Context):
         """Leave the voice channel"""
         if ctx.guild.id in self.voice_clients:
             await self.voice_clients[ctx.guild.id].disconnect()
