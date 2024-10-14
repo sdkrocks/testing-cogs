@@ -1,0 +1,13 @@
+{
+    "author" : ["Godzilla"],
+    "install_msg" : "You've just installed the vcdetect cog!",
+    "name" : "VoiceDetect",
+    "short" : "Listen To Voice",
+    "description" : "Listen to voice.",
+    "required_cogs": {},
+    "requirements": [],
+    "min_bot_version": "3.1.8",
+    "max_bot_version": "0.0.0",
+    "tags": [],
+    "type": "COG"
+}
