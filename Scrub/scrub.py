@@ -83,8 +83,6 @@ class Scrub(commands.Cog):
             for raw_rule in provider.get('rawRules', []):
                 url = re.sub(raw_rule, '', url)
 
-        if original_url != url:
-            log.info(f"URL cleaned: {original_url} -> {url}")  # Log the before and after of URL scrubbing
         return url
 
     @commands.Cog.listener()
@@ -97,7 +95,6 @@ class Scrub(commands.Cog):
             return
 
         message_location = "in DM" if message.guild is None else f"in guild {message.guild.name} (ID: {message.guild.id})"
-        log.info(f"Processing message from {message.author} {message_location}")  # Log message location and author
 
         links = list(set(URL_PATTERN.findall(message.content)))
         if not links:
@@ -126,7 +123,6 @@ class Scrub(commands.Cog):
         payload = "\n".join([f"<{link}>" for link in clean_links])
         response = f"I scrubbed th{plural} for you:\n{payload}"
 
-        log.info(f"Sending scrubbed links: {clean_links}")  # Log the cleaned links
         await message.channel.send(content=response)
 
     async def view_or_set(self, attribute: str, value=None):
